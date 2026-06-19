@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Explorer</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navbar -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i data-lucide="database"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery</h1>
+                    <span>Release Notes Explorer</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="sync-status" id="syncStatus">
+                    <span class="status-dot green"></span>
+                    <span class="status-text">Checking for updates...</span>
+                </div>
+                <button id="refreshBtn" class="btn btn-primary" title="Refresh Release Notes">
+                    <i data-lucide="refresh-cw" class="icon-refresh"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar controls -->
+            <aside class="sidebar">
+                <!-- Search Box -->
+                <div class="widget search-widget">
+                    <h3>Search Notes</h3>
+                    <div class="search-input-wrapper">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="searchInput" placeholder="Search keywords, features...">
+                        <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category/Type Filters -->
+                <div class="widget filter-widget">
+                    <h3>Filter by Type</h3>
+                    <div class="filter-buttons" id="typeFilters">
+                        <button class="filter-chip active" data-type="all">All Updates</button>
+                        <button class="filter-chip" data-type="Feature">
+                            <span class="chip-dot feature"></span> Features
+                        </button>
+                        <button class="filter-chip" data-type="Fix">
+                            <span class="chip-dot fix"></span> Fixes
+                        </button>
+                        <button class="filter-chip" data-type="Changed">
+                            <span class="chip-dot changed"></span> Changes
+                        </button>
+                        <button class="filter-chip" data-type="Deprecated">
+                            <span class="chip-dot deprecated"></span> Deprecations
+                        </button>
+                        <button class="filter-chip" data-type="Announcement">
+                            <span class="chip-dot announcement"></span> Announcements
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Feed Stats Dashboard -->
+                <div class="widget stats-widget">
+                    <h3>Feed Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value" id="statTotalDays">-</span>
+                            <span class="stat-label">Days Logged</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="statTotalItems">-</span>
+                            <span class="stat-label">Total Updates</span>
+                        </div>
+                    </div>
+                    <div class="stats-chart-list" id="statsChartList">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Feed Area -->
+            <main class="feed-area">
+                <div class="feed-header">
+                    <h2 id="feedTitle">Release Notes Timeline</h2>
+                    <div class="feed-sorting">
+                        <span id="resultsCount">Loading release notes...</span>
+                    </div>
+                </div>
+
+                <!-- Loader Spinner -->
+                <div class="loader-wrapper" id="feedLoader">
+                    <div class="spinner"></div>
+                    <p>Fetching BigQuery release notes...</p>
+                </div>
+
+                <!-- Error State -->
+                <div class="error-wrapper" id="feedError" style="display: none;">
+                    <div class="error-icon">
+                        <i data-lucide="alert-triangle"></i>
+                    </div>
+                    <h3>Failed to Load Feed</h3>
+                    <p id="errorMsg">Could not fetch release notes from Google Cloud feed.</p>
+                    <button id="retryBtn" class="btn btn-secondary">
+                        <i data-lucide="rotate-ccw"></i> Retry Fetch
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-wrapper" id="feedEmpty" style="display: none;">
+                    <div class="empty-icon">
+                        <i data-lucide="search-code"></i>
+                    </div>
+                    <h3>No Matching Updates</h3>
+                    <p>Try adjusting your search criteria or filters.</p>
+                    <button id="resetFiltersBtn" class="btn btn-secondary">Reset Filters</button>
+                </div>
+
+                <!-- Releases Timeline -->
+                <div class="timeline" id="timelineContainer">
+                    <!-- Populated by JS -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Twitter Composer Modal -->
+    <div class="modal-overlay" id="tweetModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="twitter" class="twitter-icon"></i>
+                    <h3>Share on X / Twitter</h3>
+                </div>
+                <button class="modal-close" id="closeTweetModal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-hint">Customize your tweet before posting. The text is automatically formatted and optimized to stay within character limits.</p>
+                <div class="tweet-box-wrapper">
+                    <textarea id="tweetTextarea" placeholder="What's happening?" maxlength="280"></textarea>
+                    <div class="tweet-character-counter">
+                        <svg class="progress-ring" width="24" height="24">
+                            <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="transparent" r="10" cx="12" cy="12"/>
+                            <circle class="progress-ring__circle" id="tweetProgressCircle" stroke="#1da1f2" stroke-width="2.5" fill="transparent" r="10" cx="12" cy="12"/>
+                        </svg>
+                        <span id="charCount">280</span>
+                    </div>
+                </div>
+                
+                <!-- Preview Card -->
+                <div class="tweet-preview-card">
+                    <div class="preview-header">
+                        <div class="avatar-placeholder">BQ</div>
+                        <div class="user-info">
+                            <span class="display-name">BigQuery Tracker</span>
+                            <span class="handle">@bigquery_notes</span>
+                        </div>
+                    </div>
+                    <div class="preview-text" id="tweetLivePreview">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelTweetBtn">Cancel</button>
+                <button class="btn btn-twitter" id="submitTweetBtn">
+                    <i data-lucide="send"></i> Post to X
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

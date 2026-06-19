@@ -53,6 +53,31 @@
     --border-radius: 12px;
 }
 
+body.light-theme {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: #ffffff;
+    --border-color: rgba(15, 23, 42, 0.08);
+    --border-hover: rgba(59, 130, 246, 0.5);
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.08);
+    
+    --type-feature-bg: rgba(16, 185, 129, 0.08);
+    --type-fix-bg: rgba(14, 165, 233, 0.08);
+    --type-changed-bg: rgba(245, 158, 11, 0.08);
+    --type-deprecated-bg: rgba(239, 68, 68, 0.08);
+    --type-announcement-bg: rgba(139, 92, 246, 0.08);
+    --type-update-bg: rgba(100, 116, 139, 0.08);
+}
+
 /* Base Styles */
 * {
     margin: 0;
@@ -1024,4 +1049,45 @@ mark {
     .timeline-group::before {
         left: -1.35rem;
     }
+}
+
+/* Theme Toggle Button */
+.btn-theme-toggle {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-theme-toggle:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.light-theme .btn-theme-toggle {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+body.light-theme .btn-theme-toggle:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.btn-theme-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Copy Icon Green Flash Style */
+.card-action-btn.copied {
+    color: var(--type-feature) !important;
+    border-color: var(--type-feature) !important;
+    background-color: var(--type-feature-bg) !important;
 }

@@ -12,6 +12,9 @@ const CIRCUMFERENCE = 2 * Math.PI * 10; // r = 10 -> ~62.83
 const elements = {
     syncStatusText: document.querySelector('#syncStatus .status-text'),
     syncStatusDot: document.querySelector('#syncStatus .status-dot'),
+    themeToggleBtn: document.getElementById('themeToggleBtn'),
+    themeToggleIcon: document.getElementById('themeToggleIcon'),
+    exportCsvBtn: document.getElementById('exportCsvBtn'),
     refreshBtn: document.getElementById('refreshBtn'),
     refreshIcon: document.querySelector('#refreshBtn svg'),
     searchInput: document.getElementById('searchInput'),
@@ -43,10 +46,15 @@ const elements = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Theme
+    initTheme();
+    
     // Setup Lucide icons
     lucide.createIcons();
     
     // Register events
+    elements.themeToggleBtn.addEventListener('click', toggleTheme);
+    elements.exportCsvBtn.addEventListener('click', exportToCsv);
     elements.refreshBtn.addEventListener('click', () => fetchReleases(true));
     elements.retryBtn.addEventListener('click', () => fetchReleases(true));
     elements.searchInput.addEventListener('input', handleSearchInput);
@@ -357,6 +365,13 @@ function renderTimeline() {
             tweetBtn.innerHTML = `<i data-lucide="twitter"></i>`;
             tweetBtn.addEventListener('click', () => openTweetComposer(entry, item));
             
+            // Copy to Clipboard Button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'card-action-btn btn-copy-action';
+            copyBtn.title = 'Copy update to clipboard';
+            copyBtn.innerHTML = `<i data-lucide="copy"></i>`;
+            copyBtn.addEventListener('click', () => copyToClipboard(entry, item, copyBtn));
+            
             // Link back to original
             const linkBtn = document.createElement('a');
             linkBtn.href = entry.link || 'https://docs.cloud.google.com/bigquery/docs/release-notes';
@@ -366,6 +381,7 @@ function renderTimeline() {
             linkBtn.innerHTML = `<i data-lucide="external-link"></i>`;
             
             actions.appendChild(tweetBtn);
+            actions.appendChild(copyBtn);
             actions.appendChild(linkBtn);
             
             cardHeader.appendChild(badge);
@@ -554,4 +570,97 @@ function publishTweet() {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
     closeTweetComposer();
+}
+
+// Copy update details to clipboard
+async function copyToClipboard(entry, item, btnElement) {
+    const cleanText = cleanHtmlForTweet(item.description);
+    const dateStr = entry.title;
+    const typeStr = item.type;
+    const linkStr = item.link || entry.link || "https://docs.cloud.google.com/bigquery/docs/release-notes";
+    
+    const textToCopy = `BigQuery ${typeStr} (${dateStr}):\n${cleanText}\n\nDocumentation: ${linkStr}`;
+    
+    try {
+        await navigator.clipboard.writeText(textToCopy);
+        
+        // Add copy styling and swap icon
+        btnElement.classList.add('copied');
+        btnElement.innerHTML = `<i data-lucide="check"></i>`;
+        lucide.createIcons();
+        
+        setTimeout(() => {
+            btnElement.classList.remove('copied');
+            btnElement.innerHTML = `<i data-lucide="copy"></i>`;
+            lucide.createIcons();
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy to clipboard: ', err);
+    }
+}
+
+// Export current filtered list as CSV
+function exportToCsv() {
+    if (!filteredReleases || filteredReleases.length === 0) {
+        alert("No updates available to export.");
+        return;
+    }
+    
+    const headers = ["Date", "Type", "Description", "Link"];
+    const rows = [];
+    
+    filteredReleases.forEach(entry => {
+        entry.items.forEach(item => {
+            const date = entry.title;
+            const type = item.type;
+            const description = cleanHtmlForTweet(item.description);
+            const link = item.link || entry.link || "https://docs.cloud.google.com/bigquery/docs/release-notes";
+            
+            // Escape double quotes inside text cells
+            const escapedDesc = description.replace(/"/g, '""');
+            
+            rows.push([
+                `"${date}"`,
+                `"${type}"`,
+                `"${escapedDesc}"`,
+                `"${link}"`
+            ]);
+        });
+    });
+    
+    const csvContent = "\ufeff" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+    
+    // Create download element and trigger click
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bigquery_release_notes_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Initialize Theme from LocalStorage
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        elements.themeToggleIcon.setAttribute('data-lucide', 'moon');
+    } else {
+        document.body.classList.remove('light-theme');
+        elements.themeToggleIcon.setAttribute('data-lucide', 'sun');
+    }
+}
+
+// Toggle Theme Dark/Light
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    
+    // Update Lucide icon
+    elements.themeToggleIcon.setAttribute('data-lucide', isLight ? 'moon' : 'sun');
+    lucide.createIcons();
 }
